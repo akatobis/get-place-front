@@ -21,8 +21,15 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.5",
+    "@telegram-apps/telegram-ui": "^2.1.13",
+    "@twa-dev/sdk": "^6.9.0",
+    "@xyflow/react": "^12.9.3",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "rc-slider": "^11.1.9",
     "zod": "^3.25.76"
   },
   "devDependencies": {

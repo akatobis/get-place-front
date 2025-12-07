@@ -1,38 +1,31 @@
 import { useState } from "react";
 
-interface AddPlaceModalProps {
+interface SimpleAddPlaceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (name: string, description: string) => void;
-  initialName?: string;
-  initialDescription?: string;
+  onSave: (name: string) => void;
 }
 
-export default function AddPlaceModal({
+export default function SimpleAddPlaceModal({
   isOpen,
   onClose,
   onSave,
-  initialName = "",
-  initialDescription = "",
-}: AddPlaceModalProps) {
-  const [name, setName] = useState(initialName);
-  const [description, setDescription] = useState(initialDescription);
+}: SimpleAddPlaceModalProps) {
+  const [name, setName] = useState("");
 
   if (!isOpen) return null;
 
   const handleSave = () => {
     if (name.trim()) {
-      onSave(name, description);
+      onSave(name);
       onClose();
       setName("");
-      setDescription("");
     }
   };
 
   const handleClose = () => {
     onClose();
-    setName(initialName);
-    setDescription(initialDescription);
+    setName("");
   };
 
   return (
@@ -57,21 +50,14 @@ export default function AddPlaceModal({
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Тут пишется название"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      handleSave();
+                    }
+                  }}
+                  placeholder="Введите название места"
                   className="text-base font-normal leading-6 tracking-[0.15px] text-black/87 bg-transparent border-b border-black/42 pb-1 outline-none focus:border-[#1976D2] transition-colors"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5 mt-2">
-                <label className="text-xs font-normal leading-3 tracking-[0.15px] text-black/60">
-                  Описание
-                </label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Тут пишется описание"
-                  className="text-base font-normal leading-6 tracking-[0.15px] text-black/87 bg-transparent border-b border-black/42 pb-1 outline-none focus:border-[#1976D2] transition-colors"
+                  autoFocus
                 />
               </div>
             </div>

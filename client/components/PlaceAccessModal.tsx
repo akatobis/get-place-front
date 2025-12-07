@@ -59,7 +59,6 @@ export default function PlaceAccessModal({
           </div>
 
           <div className="flex flex-col gap-8">
-            {/* Selected Groups */}
             <div className="flex items-center gap-2.5 flex-wrap">
               {selectedGroups.map((group) => (
                 <div
@@ -90,9 +89,7 @@ export default function PlaceAccessModal({
               ))}
             </div>
 
-            {/* Permission Selects */}
             <div className="flex flex-col gap-2.5">
-              {/* Who can view */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-normal leading-3 tracking-[0.15px] text-black/60">
                   Кто видит место
@@ -124,7 +121,6 @@ export default function PlaceAccessModal({
                 </div>
               </div>
 
-              {/* Who can edit */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-normal leading-3 tracking-[0.15px] text-black/60">
                   Может редактировать
@@ -156,7 +152,6 @@ export default function PlaceAccessModal({
                 </div>
               </div>
 
-              {/* Who can book */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-normal leading-3 tracking-[0.15px] text-black/60">
                   Может бронировать
@@ -189,7 +184,6 @@ export default function PlaceAccessModal({
               </div>
             </div>
 
-            {/* User Permissions List */}
             <div className="flex flex-col">
               {userPermissions.map((user, index) => (
                 <div

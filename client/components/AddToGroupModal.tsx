@@ -45,7 +45,6 @@ export default function AddToGroupModal({
           </div>
 
           <div className="flex flex-col gap-8">
-            {/* Selected Groups with remove */}
             <div className="flex items-center gap-2.5 flex-wrap">
               {selectedGroups.map((group) => (
                 <div
@@ -76,7 +75,6 @@ export default function AddToGroupModal({
               ))}
             </div>
 
-            {/* New Group Input */}
             <div className="flex items-center justify-center gap-2.5">
               <div className="flex flex-col gap-1.5 flex-1">
                 <label className="text-xs font-normal leading-3 tracking-[0.15px] text-black/60">
@@ -104,7 +102,6 @@ export default function AddToGroupModal({
               </button>
             </div>
 
-            {/* Place Name */}
             <div className="flex justify-center items-center">
               <span className="text-xl font-normal leading-6 tracking-[0.16px] text-black">
                 {placeName}

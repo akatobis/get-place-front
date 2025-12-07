@@ -31,14 +31,12 @@ export default function DeleteConfirmationModal({
           </div>
 
           <div className="flex flex-col gap-8">
-            {/* Title */}
             <div className="flex justify-center py-1">
               <h2 className="text-lg font-medium leading-6 tracking-[0.15px] text-[#101010] text-center">
                 Удалить место "{placeName}"?
               </h2>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex justify-between gap-4">
               <button
                 onClick={onClose}

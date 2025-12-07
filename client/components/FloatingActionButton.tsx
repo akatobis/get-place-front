@@ -10,36 +10,47 @@ interface SpeedDialAction {
 
 interface FloatingActionButtonProps {
   onMainClick?: () => void;
-  speedDialActions?: SpeedDialAction[];
+  onReservationClick?: () => void;
+  onCopyClick?: () => void;
+  onDeleteClick?: () => void;
   showSpeedDial?: boolean;
 }
 
 export default function FloatingActionButton({
   onMainClick,
-  speedDialActions,
+  onReservationClick,
+  onCopyClick,
+  onDeleteClick,
   showSpeedDial = false,
 }: FloatingActionButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const defaultActions: SpeedDialAction[] = [
+  const actions: SpeedDialAction[] = [
     {
       icon: <Clock className="w-6 h-6" />,
-      label: "History",
-      onClick: () => console.log("History"),
+      label: "Reservation",
+      onClick: () => {
+        onReservationClick?.();
+        setIsOpen(false);
+      },
     },
     {
       icon: <Copy className="w-6 h-6" />,
       label: "Copy",
-      onClick: () => console.log("Copy"),
+      onClick: () => {
+        onCopyClick?.();
+        setIsOpen(false);
+      },
     },
     {
       icon: <Trash2 className="w-6 h-6" />,
       label: "Delete",
-      onClick: () => console.log("Delete"),
+      onClick: () => {
+        onDeleteClick?.();
+        setIsOpen(false);
+      },
     },
   ];
-
-  const actions = speedDialActions || defaultActions;
 
   const handleMainClick = () => {
     if (showSpeedDial) {
@@ -50,20 +61,17 @@ export default function FloatingActionButton({
   };
 
   return (
-    <div className="fixed bottom-11 right-6 z-30 flex flex-col items-center gap-2">
+    <div className="z-30 flex flex-col items-end gap-2">
       {showSpeedDial && isOpen && (
-        <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200" style={{ bottom: "44px", right: "42px" }}>
           {actions.map((action, index) => (
             <button
               key={index}
-              onClick={() => {
-                action.onClick();
-                setIsOpen(false);
-              }}
+              onClick={action.onClick}
               className="flex items-center gap-2 p-2 bg-white rounded-full shadow-lg hover:shadow-xl transition-all"
               title={action.label}
             >
-              <div className="w-10 h-10 flex items-center justify-center text-black/60">
+              <div className="w-10 h-10 flex items-center justify-center text-black/60 hover:text-[#1976D2] transition-colors">
                 {action.icon}
               </div>
             </button>
@@ -73,14 +81,15 @@ export default function FloatingActionButton({
       <button
         onClick={handleMainClick}
         className={cn(
-          "w-14 h-14 flex items-center justify-center rounded-full shadow-lg hover:shadow-xl transition-all",
-          isOpen ? "bg-white" : "bg-[#1976D2]"
+          "w-14 h-14 flex items-center justify-center rounded-full shadow-lg hover:shadow-xl transition-all flex-shrink-0",
+          isOpen ? "bg-white text-[#1976D2]" : "bg-[#1976D2] text-white"
         )}
+        title={showSpeedDial ? "Open actions" : "Add place"}
       >
         {isOpen ? (
-          <Check className="w-6 h-6 text-white" />
+          <Check className="w-6 h-6" />
         ) : (
-          <Plus className="w-6 h-6 text-white" />
+          <Plus className="w-6 h-6" />
         )}
       </button>
     </div>

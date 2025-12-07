@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface GridCell {
   row: number;
@@ -50,12 +50,19 @@ export default function GridSelector({
     return grid;
   });
 
-  const [selectionStart, setSelectionStart] = useState<{
-    row: number;
-    col: number;
-  } | null>(null);
+  const [twaReady, setTwaReady] = useState(false);
+
+  useEffect(() => {
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+      setTwaReady(true);
+    }
+  }, []);
 
   const handleCellClick = (row: number, col: number) => {
+    const cell = cells[row][col];
+    if (cell.reserved) return;
+
     const newCells = [...cells];
     newCells[row][col] = {
       ...newCells[row][col],
@@ -64,16 +71,25 @@ export default function GridSelector({
     setCells(newCells);
 
     if (onSelectionChange) {
-      const selected = newCells
-        .flat()
-        .filter((cell) => cell.selected);
+      const selected = newCells.flat().filter((c) => c.selected);
       onSelectionChange(selected);
+    }
+
+    // Haptic feedback from Telegram
+    if (twaReady && window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
     }
   };
 
   return (
-    <div className="w-full h-full bg-[#F8F8F8] overflow-auto p-2">
-      <div className="grid gap-0" style={{ gridTemplateColumns: `repeat(${cols}, 40px)` }}>
+    <div className="w-full h-full bg-[#F8F8F8] overflow-auto p-4">
+      <div 
+        className="grid gap-1" 
+        style={{ 
+          gridTemplateColumns: `repeat(${cols}, minmax(40px, 1fr))`,
+          maxWidth: '100%'
+        }}
+      >
         {cells.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const hasLabel = !!cell.label;
@@ -81,40 +97,53 @@ export default function GridSelector({
             const isSelected = cell.selected;
 
             return (
-              <div
+              <button
                 key={`${rowIndex}-${colIndex}`}
                 onClick={() => handleCellClick(rowIndex, colIndex)}
+                disabled={isReserved}
                 className={cn(
-                  "w-10 h-10 border-[3px] border-[#D9D9D9] cursor-pointer transition-colors relative",
-                  isSelected &&
-                    !isReserved &&
-                    "bg-[rgba(123,187,248,0.1)] border-[#6EB9FF]",
-                  isReserved && "bg-[#FFF8C7] border-[#FFDD6E]",
-                  cell.row === 2 && cell.col === 4 && "rounded-tl-[10px]",
-                  cell.row === 2 && cell.col === 6 && "rounded-tr-[10px]",
-                  cell.row === 7 && cell.col === 2 && "rounded-bl-[10px]",
-                  cell.row === 7 && cell.col === 3 && "rounded-br-[10px]"
+                  "w-10 h-10 rounded-md border-2 cursor-pointer transition-all duration-200 relative",
+                  "hover:scale-105 active:scale-95",
+                  "disabled:cursor-not-allowed",
+                  isSelected && !isReserved
+                    ? "bg-[#0088CC] border-[#0088CC] shadow-md"
+                    : isReserved
+                    ? "bg-[#FFF3CD] border-[#FFE69C]"
+                    : "bg-white border-[#D9D9D9] hover:border-[#0088CC]"
                 )}
+                aria-pressed={isSelected}
+                title={hasLabel ? cell.label : `Cell ${rowIndex}-${colIndex}`}
               >
                 {hasLabel && (
-                  <div className="absolute -bottom-1 right-1 flex items-center gap-0.5">
+                  <div className="absolute inset-0 flex items-center justify-center">
                     <span
                       className={cn(
-                        "px-1.5 py-0.5 rounded-full border text-[13px] font-normal leading-[18px] tracking-[0.16px] whitespace-nowrap",
-                        isReserved
-                          ? "border-[#EF6C00] text-[#EF6C00]"
-                          : "border-[#1976D2] text-[#1976D2]"
+                        "text-[10px] font-semibold leading-tight text-center px-1 whitespace-nowrap overflow-hidden text-ellipsis",
+                        isReserved ? "text-[#FF9800]" : "text-[#0088CC]"
                       )}
                     >
-                      {cell.label}
+                      {cell.label.slice(0, 3)}
                     </span>
                   </div>
                 )}
-              </div>
+              </button>
             );
           })
         )}
       </div>
     </div>
   );
+}
+
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp: {
+        ready: () => void;
+        HapticFeedback?: {
+          impactOccurred: (style: 'light' | 'medium' | 'heavy') => void;
+        };
+      };
+    };
+  }
 }

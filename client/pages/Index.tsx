@@ -6,9 +6,12 @@ import ActionModal from "@/components/ActionModal";
 import ShareModal from "@/components/ShareModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import AddPlaceModal from "@/components/AddPlaceModal";
+import SimpleAddPlaceModal from "@/components/SimpleAddPlaceModal";
 import PlaceAccessModal from "@/components/PlaceAccessModal";
 import AddToGroupModal from "@/components/AddToGroupModal";
 import GridEditorModal from "@/components/GridEditorModal";
+import ReservationModal from "@/components/ReservationModal";
+import ReservationList from "@/components/ReservationList";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import { toast } from "sonner";
 
@@ -21,18 +24,28 @@ interface Place {
   description: string;
 }
 
+interface Reservation {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  userName: string;
+  placeId: number;
+}
+
 export default function Index() {
   const [activeFilter, setActiveFilter] = useState("Все");
-  const [view, setView] = useState<View>("list");
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSimpleAddModalOpen, setIsSimpleAddModalOpen] = useState(false);
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isGridEditorOpen, setIsGridEditorOpen] = useState(false);
+  const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
-  const [showSpeedDial, setShowSpeedDial] = useState(false);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
 
   const [places, setPlaces] = useState<Place[]>([
     {
@@ -76,6 +89,18 @@ export default function Index() {
     toast.success("Место добавлено успешно!");
   };
 
+  const handleSimpleAddPlace = (name: string) => {
+    const newPlace: Place = {
+      id: places.length + 1,
+      initials: name.substring(0, 2).toUpperCase(),
+      title: name,
+      description: "",
+    };
+    setPlaces([...places, newPlace]);
+    setIsSimpleAddModalOpen(false);
+    toast.success("Место добавлено успешно!");
+  };
+
   const handleDeletePlace = () => {
     if (selectedPlace) {
       setPlaces(places.filter((p) => p.id !== selectedPlace.id));
@@ -83,6 +108,47 @@ export default function Index() {
       setSelectedPlace(null);
     }
   };
+
+  const handleAddReservation = (reservation: {
+    date: string;
+    startTime: string;
+    endTime: string;
+  }) => {
+    if (selectedPlace) {
+      const newReservation: Reservation = {
+        id: `reservation-${Date.now()}`,
+        ...reservation,
+        userName: "Текущий пользователь",
+        placeId: selectedPlace.id,
+      };
+      setReservations([...reservations, newReservation]);
+      setIsReservationModalOpen(false);
+      toast.success("Бронирование создано успешно!");
+    }
+  };
+
+  const handleDeleteReservation = (reservationId: string) => {
+    setReservations(
+      reservations.filter((r) => r.id !== reservationId)
+    );
+    toast.success("Бронирование удалено");
+  };
+
+  const handleCopyPlace = () => {
+    if (selectedPlace) {
+      const newPlace: Place = {
+        ...selectedPlace,
+        id: places.length + 1,
+        title: `${selectedPlace.title} (копия)`,
+      };
+      setPlaces([...places, newPlace]);
+      toast.success("Место скопировано!");
+    }
+  };
+
+  const selectedPlaceReservations = selectedPlace
+    ? reservations.filter((r) => r.placeId === selectedPlace.id)
+    : [];
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] flex flex-col max-w-[400px] mx-auto">
@@ -93,8 +159,7 @@ export default function Index() {
       />
 
       <div className="flex-1 overflow-auto">
-        {view === "list" ? (
-          <div className="flex flex-col gap-2.5 p-2.5">
+        <div className="flex flex-col gap-2.5 p-2.5">
             {places.map((place) => (
               <PlaceCard
                 key={place.id}
@@ -105,37 +170,10 @@ export default function Index() {
               />
             ))}
           </div>
-        ) : (
-          <GridSelector />
-        )}
-      </div>
-
-      <div className="fixed top-4 right-4 flex gap-2 z-20">
-        <button
-          onClick={() => setView("list")}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            view === "list"
-              ? "bg-[#1976D2] text-white"
-              : "bg-white text-gray-700"
-          }`}
-        >
-          List
-        </button>
-        <button
-          onClick={() => setView("grid")}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            view === "grid"
-              ? "bg-[#1976D2] text-white"
-              : "bg-white text-gray-700"
-          }`}
-        >
-          Grid
-        </button>
       </div>
 
       <FloatingActionButton
-        onMainClick={() => setIsAddModalOpen(true)}
-        showSpeedDial={showSpeedDial}
+        onMainClick={() => setIsSimpleAddModalOpen(true)}
       />
 
       <ActionModal
@@ -167,6 +205,12 @@ export default function Index() {
         onSave={handleAddPlace}
       />
 
+      <SimpleAddPlaceModal
+        isOpen={isSimpleAddModalOpen}
+        onClose={() => setIsSimpleAddModalOpen(false)}
+        onSave={handleSimpleAddPlace}
+      />
+
       <PlaceAccessModal
         isOpen={isAccessModalOpen}
         onClose={() => setIsAccessModalOpen(false)}
@@ -184,6 +228,19 @@ export default function Index() {
         onClose={() => setIsGridEditorOpen(false)}
         placeName={selectedPlace?.title}
       />
+
+      <ReservationModal
+        isOpen={isReservationModalOpen}
+        onClose={() => setIsReservationModalOpen(false)}
+        onSave={handleAddReservation}
+      />
+
+      {selectedPlaceReservations.length > 0 && (
+        <ReservationList
+          reservations={selectedPlaceReservations}
+          onDeleteReservation={handleDeleteReservation}
+        />
+      )}
     </div>
   );
 }
