@@ -48,10 +48,18 @@ export default function AddPlaceModal({
   if (!isOpen) return null;
 
   const handleSave = async () => {
-    console.log("Saving place:", { name, description });
-    if (!name.trim()) return;
+    const regex = /^[0-9A-Za-zА-Яа-яЁё\s.,!?-]*$/;
+    if (!name.trim() || !description.trim()) return;
+    if (name.length < 1 || name.length > 256 || description.length < 1 || description.length > 256) {
+      console.log("Name and description length must be between 1 and 256 characters.");
+      return;
+    }
+    if (!regex.test(name) || !regex.test(description)) {
+      console.log("Name and description must only contain English or Russian letters, spaces, and punctuation (.,!?-).");
+      return;
+    }
 
-    const userId =  "owner_id"; // await ensureUserExists();
+    const userId =  "owner_id"; 
 
     try {
       const res = await fetch("/api/Place", {
