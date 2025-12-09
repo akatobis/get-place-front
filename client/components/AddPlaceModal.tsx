@@ -8,6 +8,33 @@ interface AddPlaceModalProps {
   initialDescription?: string;
 }
 
+async function findCreatedPlaceIdByFields(
+  name: string,
+  description: string
+): Promise<string | null> {
+  try {
+    const res = await fetch("/api/place/card-place-list");
+    if (!res.ok) return null;
+    const list = await res.json();
+    if (!Array.isArray(list)) return null;
+
+    for (const item of list) {
+      const itemName =
+        item.name ?? item.Name ?? item.title ?? item.Title ?? item.label ?? "";
+      const itemDesc =
+        item.description ?? item.Description ?? item.desc ?? "";
+      if (String(itemName) === name && String(itemDesc) === description) {
+        return (
+          item.placeShortId ?? item.shortId ?? item.placeId ?? item.id ?? item._id ?? null
+        );
+      }
+    }
+  } catch (e) {
+    console.log("Failed to find created place by fields:", e);
+  }
+  return null;
+}
+
 export default function AddPlaceModal({
   isOpen,
   onClose,
@@ -20,13 +47,35 @@ export default function AddPlaceModal({
 
   if (!isOpen) return null;
 
-  const handleSave = () => {
-    if (name.trim()) {
-      onSave(name, description);
-      onClose();
-      setName("");
-      setDescription("");
+  const handleSave = async () => {
+    console.log("Saving place:", { name, description });
+    if (!name.trim()) return;
+
+    const userId =  "owner_id"; // await ensureUserExists();
+
+    try {
+      const res = await fetch("/api/Place", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, description, ownerId: userId }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.placeShortId) {
+          localStorage.setItem("last_created_place_id", String(data.placeShortId));
+          console.log("Place created successfully:", data.placeShortId);
+        }
+      }
+    } catch (e) {
+      console.log("Failed to create place:", e);
     }
+
+    onSave(name, description);
+
+    onClose();
+    setName("");
+    setDescription("");
   };
 
   const handleClose = () => {

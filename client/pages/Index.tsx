@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FilterChips from "@/components/FilterChips";
 import PlaceCard from "@/components/PlaceCard";
-import GridSelector from "@/components/GridSelector";
 import ActionModal from "@/components/ActionModal";
 import ShareModal from "@/components/ShareModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
@@ -15,14 +14,25 @@ import ReservationList from "@/components/ReservationList";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import { toast } from "sonner";
 
-type View = "list" | "grid";
-
 interface Place {
-  id: number;
-  initials: string;
-  title: string;
+  placeId: string;
+  placeShortId: string;
+  ownerId: string;
+  color: string;
+  name: string;
   description: string;
-}
+  isDeleted: boolean;
+  visible: number;
+  editable: number;
+  reservable: number;
+  groupIds: string[];
+  userAccesses: string[];
+  grids: {
+    gridId: string;
+    blocks: any[]; 
+  }[];
+  reservations: any[]; 
+};
 
 interface Reservation {
   id: string;
@@ -30,8 +40,25 @@ interface Reservation {
   startTime: string;
   endTime: string;
   userName: string;
-  placeId: number;
+  placeId: string;
 }
+
+const fetchPlaces = async (setPlaces: React.Dispatch<React.SetStateAction<Place[]>>) => {
+  try {
+    const res = await fetch(`/api/place/card-place-list`, {
+      method: "GET", 
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setPlaces(data);
+    } else {
+      alert("Ошибка при добавлении на сервере.");
+    }
+  } catch (e) {
+    alert("Сетевая ошибка при попытке получить карточки.");
+  }
+};
 
 export default function Index() {
   const [activeFilter, setActiveFilter] = useState("Все");
@@ -47,29 +74,11 @@ export default function Index() {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
 
-  const [places, setPlaces] = useState<Place[]>([
-    {
-      id: 1,
-      initials: "OP",
-      title: "Label",
-      description:
-        "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.",
-    },
-    {
-      id: 2,
-      initials: "OP",
-      title: "Label",
-      description:
-        "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.",
-    },
-    {
-      id: 3,
-      initials: "OP",
-      title: "Label",
-      description:
-        "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.",
-    },
-  ]);
+  const [places, setPlaces] = useState<Place[]>([]);
+
+  useEffect(() => {
+    fetchPlaces(setPlaces);
+  }, []);
 
   const filters = ["Все", "Мои", "Нужные"];
 
@@ -78,32 +87,29 @@ export default function Index() {
     setIsActionModalOpen(true);
   };
 
-  const handleAddPlace = (name: string, description: string) => {
-    const newPlace: Place = {
-      id: places.length + 1,
-      initials: name.substring(0, 2).toUpperCase(),
-      title: name,
-      description: description,
-    };
-    setPlaces([...places, newPlace]);
-    toast.success("Место добавлено успешно!");
+  const handleAddPlace = async (name: string, description: string) => {
+    fetchPlaces(setPlaces);
   };
 
-  const handleSimpleAddPlace = (name: string) => {
-    const newPlace: Place = {
-      id: places.length + 1,
-      initials: name.substring(0, 2).toUpperCase(),
-      title: name,
-      description: "",
-    };
-    setPlaces([...places, newPlace]);
-    setIsSimpleAddModalOpen(false);
-    toast.success("Место добавлено успешно!");
+  const handleSimpleAddPlace = async (name: string) => {
+    fetchPlaces(setPlaces);
   };
 
-  const handleDeletePlace = () => {
+  const handleDeletePlace = async () => {
     if (selectedPlace) {
-      setPlaces(places.filter((p) => p.id !== selectedPlace.id));
+      try {
+        const res = await fetch(`/api/place/${selectedPlace.placeShortId}`, {
+          method: "DELETE", 
+        });
+
+        if (res.ok) {
+          fetchPlaces(setPlaces);
+        } else {
+          alert("Ошибка при удалении на сервере.");
+        }
+      } catch (e) {
+        alert("Сетевая ошибка при попытке удалить карточку.");
+      }
       toast.success("Место удалено");
       setSelectedPlace(null);
     }
@@ -119,7 +125,7 @@ export default function Index() {
         id: `reservation-${Date.now()}`,
         ...reservation,
         userName: "Текущий пользователь",
-        placeId: selectedPlace.id,
+        placeId: selectedPlace.placeId,
       };
       setReservations([...reservations, newReservation]);
       setIsReservationModalOpen(false);
@@ -136,18 +142,12 @@ export default function Index() {
 
   const handleCopyPlace = () => {
     if (selectedPlace) {
-      const newPlace: Place = {
-        ...selectedPlace,
-        id: places.length + 1,
-        title: `${selectedPlace.title} (копия)`,
-      };
-      setPlaces([...places, newPlace]);
-      toast.success("Место скопировано!");
+      
     }
   };
 
   const selectedPlaceReservations = selectedPlace
-    ? reservations.filter((r) => r.placeId === selectedPlace.id)
+    ? reservations.filter((r) => r.placeId === selectedPlace.placeId)
     : [];
 
   return (
@@ -162,9 +162,8 @@ export default function Index() {
         <div className="flex flex-col gap-2.5 p-2.5">
             {places.map((place) => (
               <PlaceCard
-                key={place.id}
-                initials={place.initials}
-                title={place.title}
+                key={place.placeId}
+                name={place.name}
                 description={place.description}
                 onClick={() => handleCardClick(place)}
               />
@@ -173,7 +172,7 @@ export default function Index() {
       </div>
 
       <FloatingActionButton
-        onMainClick={() => setIsSimpleAddModalOpen(true)}
+        onMainClick={() => setIsAddModalOpen(true)}
       />
 
       <ActionModal
@@ -189,14 +188,14 @@ export default function Index() {
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
-        placeName={selectedPlace?.title}
+        placeName={selectedPlace?.name}
       />
 
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeletePlace}
-        placeName={selectedPlace?.title}
+        placeName={selectedPlace?.name}
       />
 
       <AddPlaceModal
@@ -214,19 +213,19 @@ export default function Index() {
       <PlaceAccessModal
         isOpen={isAccessModalOpen}
         onClose={() => setIsAccessModalOpen(false)}
-        placeName={selectedPlace?.title}
+        placeName={selectedPlace?.name}
       />
 
       <AddToGroupModal
         isOpen={isGroupModalOpen}
         onClose={() => setIsGroupModalOpen(false)}
-        placeName={selectedPlace?.title}
+        placeName={selectedPlace?.name}
       />
 
       <GridEditorModal
         isOpen={isGridEditorOpen}
         onClose={() => setIsGridEditorOpen(false)}
-        placeName={selectedPlace?.title}
+        placeName={selectedPlace?.name}
       />
 
       <ReservationModal
