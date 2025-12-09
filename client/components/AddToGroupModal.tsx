@@ -44,6 +44,18 @@ export default function AddToGroupModal({
 
   const handleAddGroup = async () => {
     const userID = "owner_id";
+
+    const regex = /^[0-9A-Za-zА-Яа-яЁё\s.,!?-]*$/;
+    if (!newGroupName.trim()) return;
+    if (newGroupName.length < 1 || newGroupName.length > 10) {
+      console.log("Group name length must be between 1 and 10 characters.");
+      return;
+    }
+    if (!regex.test(newGroupName)) {
+      console.log("Group name must only contain English or Russian letters, spaces, and punctuation (.,!?-).");
+      return;
+    }
+
      try {
       const res = await fetch(`/api/group`, {
         method: "POST", 
