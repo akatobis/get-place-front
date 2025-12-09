@@ -276,7 +276,7 @@ export default function GridEditorModal({
               <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <h2 className="text-lg font-medium">{placeName} — Grid</h2>
+          <h2 className="text-lg font-medium">Grid</h2>
         </div>
       </div>
 
