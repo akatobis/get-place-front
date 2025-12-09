@@ -53,15 +53,62 @@ const fetchPlaces = async (setPlaces: React.Dispatch<React.SetStateAction<Place[
       const data = await res.json();
       setPlaces(data);
     } else {
-      alert("Ошибка при добавлении на сервере.");
+      alert("Ошибка при получении карточек на сервере.");
     }
   } catch (e) {
     alert("Сетевая ошибка при попытке получить карточки.");
   }
 };
 
+const fetchPlacesByGroupId = async (groupId: string, setPlaces: React.Dispatch<React.SetStateAction<Place[]>>) => {
+  try {
+    const res = await fetch(`/api/place/card-place-list?groupId=${groupId}`, {
+      method: "GET", 
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setPlaces(data);
+    } else {
+      alert("Ошибка при получении карточек по группе на сервере.");
+    }
+  } catch (e) {
+    alert("Сетевая ошибка при попытке получить карточки по группе.");
+  }
+};
+
+interface Group {
+  groupId: string;
+  name: string;
+  order: number;
+};
+
+const fetchGroups = async (setSelectedGroups: React.Dispatch<React.SetStateAction<Group[]>>) => {
+  const userID = "owner_id";
+  
+  try {
+    const res = await fetch(`/api/group?userId=${userID}`, {
+      method: "GET", 
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setSelectedGroups(data);
+    } else {
+      alert("Ошибка при получении групп на сервере.");
+    }
+  } catch (e) {
+    alert("Сетевая ошибка при попытке получить группы.");
+  }
+};
+
+  const getGroupsByPlaceId = async (placeId: string | undefined) => {
+    // TODO: Implement logic to fetch groups by place ID
+  }
+
 export default function Index() {
   const [activeFilter, setActiveFilter] = useState("Все");
+  const [selectedGroups, setSelectedGroups] = useState<Group[]>([]);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -80,7 +127,20 @@ export default function Index() {
     fetchPlaces(setPlaces);
   }, []);
 
-  const filters = ["Все", "Мои", "Нужные"];
+  useEffect(() => {
+    fetchGroups(setSelectedGroups);
+  }, []);
+
+  const filters = ["Все", ...selectedGroups.map(group => group.name)];
+
+  const handleOnActiveFilerChange = (filter: string) => {
+    setActiveFilter(filter);
+    if (filter === "Все") {
+      fetchPlaces(setPlaces);
+    } else {
+      fetchPlacesByGroupId(filter, setPlaces);
+    }
+  };
 
   const handleCardClick = (place: Place) => {
     setSelectedPlace(place);
@@ -155,11 +215,18 @@ export default function Index() {
       <FilterChips
         filters={filters}
         activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
+        onFilterChange={handleOnActiveFilerChange}
       />
 
       <div className="flex-1 overflow-auto">
         <div className="flex flex-col gap-2.5 p-2.5">
+            {places.length === 0 && (
+              <div className="text-center text-gray-500 mt-10 text-lg px-4 leading-relaxed">
+                Пока нет мест, в которые вы заходили.<br />
+                Но вы можете создать новое
+              </div>
+            )}
+
             {places.map((place) => (
               <PlaceCard
                 key={place.placeId}
@@ -219,6 +286,8 @@ export default function Index() {
       <AddToGroupModal
         isOpen={isGroupModalOpen}
         onClose={() => setIsGroupModalOpen(false)}
+        groupList={selectedGroups} //{getGroupsByPlaceId(setselectedPlace?.placeShortId)}
+        onGroupChange={() => fetchGroups(setSelectedGroups)}
         placeName={selectedPlace?.name}
       />
 

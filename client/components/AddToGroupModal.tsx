@@ -1,34 +1,63 @@
-import { useState } from "react";
-import { X } from "lucide-react";
+import { on } from "events";
+import { useEffect, useState } from "react";
+
+interface Group {
+  groupId: string;
+  name: string;
+  order: number;
+};
 
 interface AddToGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
+  groupList: Group[];
+  onGroupChange: () => void;
   placeName?: string;
 }
 
 export default function AddToGroupModal({
   isOpen,
   onClose,
+  groupList,
+  onGroupChange,
   placeName = "Название места",
 }: AddToGroupModalProps) {
-  const [selectedGroups, setSelectedGroups] = useState<string[]>([
-    "Все",
-    "Мои",
-    "Нужные",
-  ]);
   const [newGroupName, setNewGroupName] = useState("");
 
   if (!isOpen) return null;
 
-  const removeGroup = (group: string) => {
-    setSelectedGroups(selectedGroups.filter((g) => g !== group));
+  const removeGroup = async (groupId: string) => {
+    try {
+      const res = await fetch(`/api/group/${groupId}`, {
+        method: "DELETE", 
+      });
+
+      if (res.ok) {
+        onGroupChange();
+      } else {
+        alert("Ошибка при удалении группы на сервере.");
+      }
+    } catch (e) {
+      alert("Сетевая ошибка при попытке удалить группу.");
+    }
   };
 
-  const handleAddGroup = () => {
-    if (newGroupName.trim() && !selectedGroups.includes(newGroupName.trim())) {
-      setSelectedGroups([...selectedGroups, newGroupName.trim()]);
-      setNewGroupName("");
+  const handleAddGroup = async () => {
+    const userID = "owner_id";
+     try {
+      const res = await fetch(`/api/group`, {
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newGroupName, userId: userID }),
+      });
+
+      if (res.ok) {
+        onGroupChange();
+      } else {
+        alert("Ошибка при добавлении группы на сервере.");
+      }
+    } catch (e) {
+      alert("Сетевая ошибка при попытке добавления группы.");
     }
   };
 
@@ -46,16 +75,16 @@ export default function AddToGroupModal({
 
           <div className="flex flex-col gap-8">
             <div className="flex items-center gap-2.5 flex-wrap">
-              {selectedGroups.map((group) => (
+              {groupList.map((group) => (
                 <div
-                  key={group}
+                  key={group.name}
                   className="flex items-center gap-1 px-1 py-1 rounded-full border border-[#1976D2] bg-[rgba(25,118,210,0.3)]"
                 >
                   <span className="px-1.5 text-[13px] font-normal leading-[18px] tracking-[0.16px] text-[#1976D2]">
-                    {group}
+                    {group.name}
                   </span>
                   <button
-                    onClick={() => removeGroup(group)}
+                    onClick={() => removeGroup(group.groupId)}
                     className="w-6 h-6 flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity"
                   >
                     <svg
