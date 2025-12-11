@@ -151,27 +151,69 @@ export default function GridEditorModal({
   };
 
   const addShape = useCallback(() => {
-    const id = `shape-${Date.now()}`;
-    const baseX = snapToGrid(100);
-    const baseY = snapToGrid(100);
+    if (!containerRef.current) return;
 
-    const newShape: Shape = {
+    const id = `shape-${Date.now()}`;
+    const minSize = MIN_SHAPE_CELLS * GRID_SIZE;
+
+    // Определяем центр видимой области
+    const viewWidth = containerRef.current.clientWidth;
+    const viewHeight = containerRef.current.clientHeight;
+    const centerX = snapToGrid(camera.x + viewWidth / 2 / zoomScale - minSize / 2);
+    const centerY = snapToGrid(camera.y + viewHeight / 2 / zoomScale - minSize / 2);
+
+    const baseShape: Shape = {
       id,
-      x: baseX,
-      y: baseY,
-      width: MIN_SHAPE_CELLS * GRID_SIZE,
-      height: MIN_SHAPE_CELLS * GRID_SIZE,
+      x: centerX,
+      y: centerY,
+      width: minSize,
+      height: minSize,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
       title: placeName,
       label: placeName,
     };
 
-    const clamped = clampShapeToWorld(newShape);
-    if (!checkCollision(clamped, id)) {
-      setShapes((prev) => [...prev, clamped]);
+    // Проверяем доступность позиции
+    const isFree = (shape: Shape) => !checkCollision(shape, id);
+
+    if (isFree(baseShape)) {
+      setShapes(prev => [...prev, clampShapeToWorld(baseShape)]);
       setSelectedId(id);
+      return;
     }
-  }, [placeName, shapes]);
+
+    // Ищем ближайшее свободное место по спирали вокруг центра
+    const maxRadius = Math.max(WORLD_WIDTH, WORLD_HEIGHT);
+    let found = false;
+    let newShape: Shape = { ...baseShape };
+
+    for (let radius = GRID_SIZE; radius < maxRadius; radius += GRID_SIZE) {
+      for (let dx = -radius; dx <= radius; dx += GRID_SIZE) {
+        for (let dy = -radius; dy <= radius; dy += GRID_SIZE) {
+          const candidate = {
+            ...baseShape,
+            x: snapToGrid(centerX + dx),
+            y: snapToGrid(centerY + dy),
+          };
+          const clampedCandidate = clampShapeToWorld(candidate);
+          if (isFree(clampedCandidate)) {
+            newShape = clampedCandidate;
+            found = true;
+            break;
+          }
+        }
+        if (found) break;
+      }
+      if (found) break;
+    }
+
+    if (found) {
+      setShapes(prev => [...prev, newShape]);
+      setSelectedId(id);
+    } else {
+      alert("Нет свободного места для новой фигуры на экране.");
+    }
+  }, [camera, zoomScale, placeName, shapes]);
 
   const deleteShape = useCallback(() => {
     if (!selectedId) return;
