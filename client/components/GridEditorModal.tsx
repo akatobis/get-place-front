@@ -70,15 +70,31 @@ export default function GridEditorModal({
     shapeY: 0,
   });
 
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
   const [reservations, setReservations] = useState<Record<string, any[]>>({});
   const [openReservationList, setOpenReservationList] = useState(false);
   const [openReservationAdd, setOpenReservationAdd] = useState(false);
   const [reservationData, setReservationData] = useState({
     title: "",
-    date: "",
-    startTime: "",
-    endTime: "",
+    date: now.toISOString().slice(0, 10), // yyyy-mm-dd
+    startTime: `${pad(now.getHours())}:${pad(now.getMinutes())}`, // HH:MM
+    endTime: `${pad(now.getHours() + 1)}:${pad(now.getMinutes())}`, // HH:MM +1 час
   });
+
+  useEffect(() => {
+    if (openReservationAdd) {
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, "0");
+
+      setReservationData({
+        title: "",
+        date: now.toISOString().slice(0, 10),
+        startTime: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+        endTime: `${pad(now.getHours() + 1)}:${pad(now.getMinutes())}`,
+      });
+    }
+  }, [openReservationAdd]);
 
   const deleteReservation = (id: string, index: number) => {
     setReservations(prev => ({
@@ -94,7 +110,7 @@ export default function GridEditorModal({
     const endM = Number(end.replace(":", ""));
 
     return slots.some(slot => {
-      if (slot.date !== date) return false; // разные даты — нет конфликта
+      if (slot.date !== date) return false;
 
       const s = Number(slot.start.replace(":", ""));
       const e = Number(slot.end.replace(":", ""));
@@ -202,32 +218,39 @@ export default function GridEditorModal({
 
     const { title, date, startTime, endTime } = reservationData;
 
-    // 1. Проверка заполнения
     if (!date || !startTime || !endTime) {
       alert("Заполните дату и время.");
       return;
     }
 
-    // 2. Начало < конец
+    const finalTitle = title.trim() ? title : "Без имени";
+
+    const now = new Date();
+    now.setSeconds(0, 0); 
+    const fiveMinutesLater = new Date(now.getTime() - 5 * 60 * 1000); 
+    const selectedDateTimeStart = new Date(`${date}T${startTime}`);
+    if (selectedDateTimeStart < fiveMinutesLater) {
+      alert("Нельзя бронировать на прошедшее время (минимум 5 минут назад).");
+      return;
+    }
+
     if (endTime <= startTime) {
       alert("Время окончания должно быть больше времени начала.");
       return;
     }
 
-    // 3. Проверяем пересечения по ДАТЕ
     if (hasOverlap(selectedId, date, startTime, endTime)) {
       alert("Этот временной интервал пересекается с существующим бронированием на эту дату.");
       return;
     }
 
-    // 4. Сохраняем
     setReservations(prev => {
       const updated = {
         ...prev,
         [selectedId]: [
           ...(prev[selectedId] || []),
           {
-            title,
+            title: finalTitle,
             date,
             start: startTime,
             end: endTime,
@@ -235,7 +258,6 @@ export default function GridEditorModal({
         ],
       };
 
-      // 5. Сортировка по дате → времени
       updated[selectedId].sort((a, b) => {
         const d1 = a.date.localeCompare(b.date);
         if (d1 !== 0) return d1;
@@ -246,7 +268,6 @@ export default function GridEditorModal({
       return updated;
     });
 
-    // очистка и навигация
     setReservationData({ title: "", date: "", startTime: "", endTime: "" });
 
     setOpenReservationAdd(false);
@@ -629,7 +650,7 @@ export default function GridEditorModal({
                   }}
                 >
                   <Typography>
-                    <b>{r.date}</b> • {r.start}–{r.end} — {r.title}
+                    <b>{r.date.slice(5)}</b> • {r.start}–{r.end} — {r.title}
                   </Typography>
                   <DeleteIcon
                     sx={{ cursor: "pointer" }}
@@ -677,6 +698,7 @@ export default function GridEditorModal({
             <Typography variant="h6">
               Добавить бронирование
             </Typography>
+            
             <TextField
               fullWidth
               label="Дата"
@@ -685,6 +707,9 @@ export default function GridEditorModal({
               value={reservationData.date}
               onChange={handleReservationChange}
               InputLabelProps={{ shrink: true }}
+              inputProps={{
+                min: now.toISOString().slice(0, 10), // запрещаем прошлые даты
+              }}
               sx={{ mt: 2 }}
             />
 
@@ -696,6 +721,12 @@ export default function GridEditorModal({
               value={reservationData.startTime}
               onChange={handleReservationChange}
               InputLabelProps={{ shrink: true }}
+              inputProps={{
+                min:
+                  reservationData.date === now.toISOString().slice(0, 10)
+                    ? `${pad(now.getHours())}:${pad(now.getMinutes())}` // запрещаем прошлое время сегодня
+                    : undefined,
+              }}
               sx={{ mt: 2 }}
             />
 
@@ -707,6 +738,9 @@ export default function GridEditorModal({
               value={reservationData.endTime}
               onChange={handleReservationChange}
               InputLabelProps={{ shrink: true }}
+              inputProps={{
+                min: reservationData.startTime, // конец не может быть раньше начала
+              }}
               sx={{ mt: 2 }}
             />
 
