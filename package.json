@@ -23,6 +23,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.6",
     "@mui/material": "^7.3.5",
     "@telegram-apps/telegram-ui": "^2.1.13",
     "@twa-dev/sdk": "^6.9.0",
