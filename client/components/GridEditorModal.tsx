@@ -70,12 +70,39 @@ export default function GridEditorModal({
     shapeY: 0,
   });
 
-  const [openReservationModal, setOpenReservationModal] = useState(false);
+  const [reservations, setReservations] = useState<Record<string, any[]>>({});
+  const [openReservationList, setOpenReservationList] = useState(false);
+  const [openReservationAdd, setOpenReservationAdd] = useState(false);
   const [reservationData, setReservationData] = useState({
     title: "",
+    date: "",
     startTime: "",
     endTime: "",
   });
+
+  const deleteReservation = (id: string, index: number) => {
+    setReservations(prev => ({
+      ...prev,
+      [id]: prev[id].filter((_, i) => i !== index),
+    }));
+  };
+
+  const hasOverlap = (id: string, date: string, start: string, end: string) => {
+    const slots = reservations[id] || [];
+
+    const startM = Number(start.replace(":", ""));
+    const endM = Number(end.replace(":", ""));
+
+    return slots.some(slot => {
+      if (slot.date !== date) return false; // разные даты — нет конфликта
+
+      const s = Number(slot.start.replace(":", ""));
+      const e = Number(slot.end.replace(":", ""));
+
+      return startM < e && endM > s; 
+    });
+  };
+
 
   const snapToGrid = (value: number) =>
     Math.round(value / GRID_SIZE) * GRID_SIZE;
@@ -162,17 +189,68 @@ export default function GridEditorModal({
 
   const reserveShape = useCallback(() => {
     if (!selectedId) return;
-    setOpenReservationModal(true);
+    setOpenReservationList(true);
   }, [selectedId]);
 
   const handleReservationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setReservationData((prev) => ({ ...prev, [name]: value }));
+    setReservationData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleReservationSubmit = () => {
-    // тут можно отправить данные на бек
-    setOpenReservationModal(false);
+    if (!selectedId) return;
+
+    const { title, date, startTime, endTime } = reservationData;
+
+    // 1. Проверка заполнения
+    if (!date || !startTime || !endTime) {
+      alert("Заполните дату и время.");
+      return;
+    }
+
+    // 2. Начало < конец
+    if (endTime <= startTime) {
+      alert("Время окончания должно быть больше времени начала.");
+      return;
+    }
+
+    // 3. Проверяем пересечения по ДАТЕ
+    if (hasOverlap(selectedId, date, startTime, endTime)) {
+      alert("Этот временной интервал пересекается с существующим бронированием на эту дату.");
+      return;
+    }
+
+    // 4. Сохраняем
+    setReservations(prev => {
+      const updated = {
+        ...prev,
+        [selectedId]: [
+          ...(prev[selectedId] || []),
+          {
+            title,
+            date,
+            start: startTime,
+            end: endTime,
+          },
+        ],
+      };
+
+      // 5. Сортировка по дате → времени
+      updated[selectedId].sort((a, b) => {
+        const d1 = a.date.localeCompare(b.date);
+        if (d1 !== 0) return d1;
+
+        return a.start.localeCompare(b.start);
+      });
+
+      return updated;
+    });
+
+    // очистка и навигация
+    setReservationData({ title: "", date: "", startTime: "", endTime: "" });
+
+    setOpenReservationAdd(false);
+    setOpenReservationList(true);
   };
 
   const handleShapeMouseDown = (
@@ -514,12 +592,73 @@ export default function GridEditorModal({
           )}
         </div>
 
-        {/* Модалка резервирования */}
         <Modal
-          open={openReservationModal}
-          onClose={() => setOpenReservationModal(false)}
-          aria-labelledby="reservation-modal"
-          aria-describedby="reservation-form"
+          open={openReservationList}
+          onClose={() => setOpenReservationList(false)}
+        >
+          <Container
+            sx={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              padding: 2,
+              width: "100%",
+              maxWidth: "400px",
+              backgroundColor: "white",
+              borderRadius: 2,
+              boxShadow: 3,
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Бронирования: {shapes.find(s => s.id === selectedId)?.title}
+            </Typography>
+
+            {reservations[selectedId || ""]?.length ? (
+              reservations[selectedId || ""].map((r, i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 1.5,
+                    p: 1,
+                    borderRadius: 1,
+                    backgroundColor: "#f8f9fa",
+                  }}
+                >
+                  <Typography>
+                    <b>{r.date}</b> • {r.start}–{r.end} — {r.title}
+                  </Typography>
+                  <DeleteIcon
+                    sx={{ cursor: "pointer" }}
+                    onClick={() => deleteReservation(selectedId!, i)}
+                  />
+                </Box>
+              ))
+            ) : (
+              <Typography sx={{ mb: 2, opacity: 0.6 }}>
+                Нет бронирований
+              </Typography>
+            )}
+
+            <button
+              onClick={() => {
+                setOpenReservationList(false);
+                setOpenReservationAdd(true);
+              }}
+              className="w-full px-4 py-2 rounded bg-blue-600 text-white"
+            >
+              Добавить бронирование
+            </button>
+          </Container>
+        </Modal>
+
+        {/* Reservation ADD */}
+        <Modal
+          open={openReservationAdd}
+          onClose={() => setOpenReservationAdd(false)}
         >
           <Container
             sx={{
@@ -536,46 +675,63 @@ export default function GridEditorModal({
             }}
           >
             <Typography variant="h6">
-              Reservation for {shapes.find((s) => s.id === selectedId)?.title}
+              Добавить бронирование
             </Typography>
             <TextField
               fullWidth
-              label="Start Time"
+              label="Дата"
+              type="date"
+              name="date"
+              value={reservationData.date}
+              onChange={handleReservationChange}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
+            />
+
+            <TextField
+              fullWidth
+              label="Начало"
               type="time"
               name="startTime"
               value={reservationData.startTime}
               onChange={handleReservationChange}
-              sx={{ marginTop: 2 }}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
             />
+
             <TextField
               fullWidth
-              label="End Time"
+              label="Окончание"
               type="time"
               name="endTime"
               value={reservationData.endTime}
               onChange={handleReservationChange}
-              sx={{ marginTop: 2 }}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
             />
+
             <TextField
               fullWidth
-              label="Title"
+              label="Название"
               name="title"
               value={reservationData.title}
               onChange={handleReservationChange}
-              sx={{ marginTop: 2 }}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
             />
-            <Box sx={{ marginTop: 2, display: "flex", justifyContent: "flex-end" }}>
+
+            <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
               <button
-                onClick={() => setOpenReservationModal(false)}
+                onClick={() => setOpenReservationAdd(false)}
                 className="mr-2 px-4 py-2 rounded border border-gray-300 text-sm"
               >
-                Cancel
+                Отмена
               </button>
               <button
                 onClick={handleReservationSubmit}
                 className="px-4 py-2 rounded bg-blue-600 text-white text-sm"
               >
-                Confirm
+                Сохранить
               </button>
             </Box>
           </Container>
