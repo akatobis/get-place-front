@@ -1,0 +1,40 @@
+.draggable-shape {
+  will-change: transform;
+  transition: box-shadow 0.2s ease;
+}
+
+.draggable-shape.selected {
+  z-index: 100;
+}
+
+.draggable-shape:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.resize-handle {
+  transition: all 0.1s ease;
+}
+
+.resize-handle:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Touch support for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .draggable-shape {
+    padding: 10px;
+  }
+
+  .resize-handle {
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
+/* Prevent text selection on drag */
+.draggable-shape {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
