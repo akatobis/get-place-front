@@ -256,6 +256,7 @@ export default function Index() {
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         placeName={selectedPlace?.name}
+        placeShortId={selectedPlace?.placeShortId}
       />
 
       <DeleteConfirmationModal

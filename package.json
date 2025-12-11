@@ -30,6 +30,7 @@
     "@xyflow/react": "^12.9.3",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "qrcode.react": "^4.2.0",
     "rc-slider": "^11.1.9",
     "zod": "^3.25.76"
   },
