@@ -75,9 +75,14 @@ export function DraggableShape({
           borderRadius: "20px",
           padding: "4px 8px",
           maxWidth: "90%",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
           overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "normal", // Allow wrapping of the text
+          wordWrap: "break-word", // Word break for long words
+          height: "80%", // Ensure text fits within the container
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
         {isEditing ? (
@@ -88,9 +93,16 @@ export function DraggableShape({
             autoFocus
             variant="standard"
             fullWidth
+            sx={{ textOverflow: "ellipsis" }}
           />
         ) : (
-          <Typography variant="body2" onClick={toggleEdit}>
+          <Typography variant="body2" onClick={toggleEdit} sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "normal",
+              wordWrap: "break-word",
+            }}
+          >
             {title || "Enter title..."}
           </Typography>
         )}
