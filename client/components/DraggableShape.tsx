@@ -91,7 +91,7 @@ export function DraggableShape({
           />
         ) : (
           <Typography variant="body2" onClick={toggleEdit}>
-            {shape.title || "Enter title..."}
+            {title || "Enter title..."}
           </Typography>
         )}
       </Box>
